@@ -1,30 +1,30 @@
 package dcache2
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestNameSplitting(t *testing.T) {
 	d, b := splitPath("test/path")
-	if(d != "test/" || b != "path") {
+	if d != "test/" || b != "path" {
 		t.Fail()
 	}
 
 	d, b = splitPath("/path")
-	if(d != "/" || b != "path") {
+	if d != "/" || b != "path" {
 		t.Fail()
 	}
 
 	d, b = splitPath("/the/test/path")
-	if(d != "/the/test/" || b != "path") {
+	if d != "/the/test/" || b != "path" {
 		t.Fail()
 	}
 }
 
 func TestBasicFS(t *testing.T) {
 
-	c := dcache_rw_init()
+	c := InitializeDcache()
 
 	cd := createDirectory("/dankDir")
 	printFSTree(c)
@@ -53,7 +53,7 @@ func TestBasicFS(t *testing.T) {
 
 func TestFolderDeletionFS(t *testing.T) {
 
-	c := dcache_rw_init()
+	c := InitializeDcache()
 
 	cd := createDirectory("/dankDir")
 	printFSTree(c)

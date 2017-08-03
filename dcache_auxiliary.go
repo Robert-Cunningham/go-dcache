@@ -1,39 +1,37 @@
 package dcache2
 
 import (
-	"math/rand"
 	"fmt"
+	"math/rand"
 )
 
 func printDentryTree(c dcache, parent *Dentry, depth int) {
 	var currentNode *list_node = &parent.d_subdirs
-	var currentChild *Dentry;
+	var currentChild *Dentry
 
 	//fmt.Printf("current Node: %+v \n", currentNode)
 	//fmt.Printf("current Child: %+v \n", currentChild)
 
-
-
 	for {
-		if(currentNode.next == nil) {
+		if currentNode.next == nil {
 			return
-		} else if(currentNode.data == nil) {
+		} else if currentNode.data == nil {
 			goto next
 		} else {
-			 currentChild = currentNode.data.(*Dentry)
+			currentChild = currentNode.data.(*Dentry)
 		}
 		for i := 0; i < depth; i++ {
 			fmt.Printf("  ")
 		}
 		fmt.Printf("|-")
 		fmt.Printf("%v ", currentChild.d_name)
-		if(c.d_is_negative(currentChild)) {
+		if c.d_is_negative(currentChild) {
 			fmt.Printf(" [NEGATIVE] ")
 		}
 		fmt.Println()
-		printDentryTree(c, currentChild, depth + 1)
+		printDentryTree(c, currentChild, depth+1)
 
-		next:
+	next:
 		currentNode = currentNode.next
 		//currentChild = currentNode.data.(*Dentry)
 	}
@@ -45,10 +43,10 @@ func printFSTree(c dcache) {
 	printDentryTree(c, c.getSuperBlock().grandparent, 0)
 }
 
-func generateRandomFSTree(dentryCount int) (dcache_rw) {
+func generateRandomFSTree(dentryCount int) *Dcache {
 	//rand.Seed(time.Now().UnixNano())
 
-	c := dcache_rw_init()
+	c := InitializeDcache()
 
 	iterations := dentryCount
 
@@ -58,7 +56,7 @@ func generateRandomFSTree(dentryCount int) (dcache_rw) {
 	for i := 1; i < iterations; i++ {
 		parent := dentries[rand.Intn(i)]
 		name := getRandomString(3)
-		myDentry := c.d_alloc(parent, name)
+		myDentry := c.NewDentry(parent, name)
 
 		myInode := newInodeOld(fmt.Sprintf("Very Important Data:%v", i))
 		c.d_add(myDentry, &myInode)
@@ -69,7 +67,7 @@ func generateRandomFSTree(dentryCount int) (dcache_rw) {
 
 	fmt.Println("Overwrote FS with a random FS tree.")
 
-	return *c
+	return c
 }
 
 func getRandomDentryFromPath(c dcache) *Dentry {
@@ -92,17 +90,17 @@ func generateRandomPath(c dcache, canFail bool) (string, *Dentry, PotentialError
 				depth++
 				currentDentry = newDirectory
 			}
-		} else if (r < 0.80 && depth > 0) {
+		} else if r < 0.80 && depth > 0 {
 			currentDentry = currentDentry.d_parent
 			path = path + "/.."
 			depth--
-		} else if (r < 0.85) {
+		} else if r < 0.85 {
 			path = path + "/."
-		} else if (r < 0.90){
+		} else if r < 0.90 {
 			path = path + "//"
-		} else if (r < 0.93 && canFail) {
+		} else if r < 0.93 && canFail {
 			path = path + "/" + getRandomString(3)
-			if(currentError == SUCCESS) {
+			if currentError == SUCCESS {
 				currentError = ERROR_FAILED_TO_FIND
 			}
 		} else {
@@ -111,7 +109,8 @@ func generateRandomPath(c dcache, canFail bool) (string, *Dentry, PotentialError
 	}
 
 	//returns a path, the dentry it's supposed to lead to, and the error state that ought to arise from it.
-	return path, currentDentry, currentError }
+	return path, currentDentry, currentError
+}
 
 //Thanks http://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang (laziness)
 
@@ -120,7 +119,7 @@ var letterBytes = "abcdefghijklmnopqrstuvwxyz"
 func getRandomString(length uint) string {
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = letterBytes[rand.Int63() % int64(len(letterBytes))]
+		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
 	}
 	return string(b)
 }

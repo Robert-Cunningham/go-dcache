@@ -4,29 +4,29 @@ import "fmt"
 
 var pp ThePathParser = ThePathParser{}
 
-func createFile(path string, data interface{}) (PotentialError) {
+func createFile(path string, data interface{}) PotentialError {
 	dir, base := splitPath(path)
 	parent, e := pp.resolvePath(dir)
 
-	if(e != SUCCESS) {
+	if e != SUCCESS {
 		return e
 	}
 
-	myDentry := pp.getDcache().d_alloc(parent, base)
+	myDentry := pp.getDcache().NewDentry(parent, base)
 	pp.getDcache().d_add(myDentry, newInode(data))
 
 	return SUCCESS
 }
 
-func createDirectory(path string) (PotentialError) {
+func createDirectory(path string) PotentialError {
 	dir, base := splitPath(path)
 	parent, e := pp.resolvePath(dir)
 
-	if(e != SUCCESS) {
+	if e != SUCCESS {
 		return e
 	}
 
-	myDentry := pp.getDcache().d_alloc(parent, base)
+	myDentry := pp.getDcache().NewDentry(parent, base)
 	myDentry.setAsDirectory()
 	myInode := newInode("I am an inode directory")
 	pp.getDcache().d_add(myDentry, myInode)
@@ -34,10 +34,10 @@ func createDirectory(path string) (PotentialError) {
 	return SUCCESS
 }
 
-func deleteFile(path string) (PotentialError) {
+func deleteFile(path string) PotentialError {
 	dentry, e := pp.resolvePath(path)
 
-	if(e != SUCCESS) {
+	if e != SUCCESS {
 		return e
 	}
 
@@ -51,7 +51,7 @@ func openFile(path string) (*interface{}, PotentialError) {
 	dentry, de := pp.resolvePath(path)
 	data, ie := dentry.getInodeData()
 
-	if(de != SUCCESS) {
+	if de != SUCCESS {
 		return nil, de
 	} else if ie != SUCCESS {
 		return nil, ie
@@ -59,19 +59,18 @@ func openFile(path string) (*interface{}, PotentialError) {
 		return data, SUCCESS
 	}
 
-
 }
 
-func overwriteFile(path string, data interface{}) (PotentialError) {
+func overwriteFile(path string, data interface{}) PotentialError {
 	dentry, de := pp.resolvePath(path)
 
-	if(de != SUCCESS) {
+	if de != SUCCESS {
 		return de
 	}
 
 	ie := dentry.setInodeData(&data)
 
-	if(ie != SUCCESS) {
+	if ie != SUCCESS {
 		return ie
 	} else {
 		return SUCCESS

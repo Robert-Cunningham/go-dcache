@@ -1,8 +1,8 @@
 package dcache2
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 /*
@@ -12,7 +12,7 @@ import (
 	------d_lookup_rcu
 	----lookup_slow (resolveNextDentrySlow)
 	------d_lookup
- */
+*/
 
 type ThePathParser struct {
 	dc dcache
@@ -37,11 +37,13 @@ func (s ThePathParser) resolvePath(path string) (*Dentry, PotentialError) {
 func (s *ThePathParser) resolvePathPLS(cpls *NewPathLookupState) (*Dentry, PotentialError) {
 	for {
 		cpls.pathLeftToResolve = remove_leading_slashes(cpls.pathLeftToResolve)
-		if cpls.pathLeftToResolve == "" { break }
+		if cpls.pathLeftToResolve == "" {
+			break
+		}
 
 		e := s.walk_component(cpls) //resolve the next bit of the path.
 
-		if(e != SUCCESS) {
+		if e != SUCCESS {
 			return nil, e
 		}
 	}
@@ -49,8 +51,10 @@ func (s *ThePathParser) resolvePathPLS(cpls *NewPathLookupState) (*Dentry, Poten
 	return cpls.currentDentry, SUCCESS
 }
 
-func (s *ThePathParser) walk_component(cpls *NewPathLookupState) PotentialError{
+func (s *ThePathParser) walk_component(cpls *NewPathLookupState) PotentialError {
 	var e PotentialError
+
+	//fmt.Println("Attmpeting to resolve", cpls.pathLeftToResolve)
 
 	lastType := detectLastType(cpls.pathLeftToResolve)
 
@@ -60,7 +64,7 @@ func (s *ThePathParser) walk_component(cpls *NewPathLookupState) PotentialError{
 		e = s.resolveNextDentryFast(cpls)
 
 		if e != SUCCESS {
-			e = s.resolveNextDentrySlow(cpls)
+			_, e = s.resolveNextDentrySlow(cpls)
 		}
 	}
 
@@ -75,30 +79,25 @@ func (s *ThePathParser) walk_component(cpls *NewPathLookupState) PotentialError{
 }
 
 func (s *ThePathParser) resolveNextDentryFast(cpls *NewPathLookupState) PotentialError { //lookup_fast, TODO
-
+	return ERROR_ILLEGAL
 }
 
-func (s *ThePathParser) resolveNextDentrySlow(cpls *NewPathLookupState) *Dentry {
+func (s *ThePathParser) resolveNextDentrySlow(cpls *NewPathLookupState) (*Dentry, PotentialError) {
 	toFind := strings.Split(cpls.pathLeftToResolve, "/")[0]
 	//fmt.Printf("Searching for %v in %v \n", toFind, cpls.currentDentry)
 	found := pp.getDcache().d_lookup(cpls.currentDentry, toFind)
 	//fmt.Printf("Hit: %v \n", found)
 
-	/*
-	if(found == nil) {
-		return ERROR_FAILED_TO_FIND
+	if found == nil {
+		return nil, ERROR_FAILED_TO_FIND
 	} else {
 		cpls.currentDentry = found
-
-		return SUCCESS
+		return found, SUCCESS
 	}
-	*/
-
-	return found
 
 }
 
-func switchToREFWalk(cpls *NewPathLookupState, dentry *Dentry, seq uint32) { //unlazy_walk equivalent
+func switchToREFWalk(cpls *NewPathLookupState, dentry *Dentry, seq uint32) int { //unlazy_walk equivalent
 	if !cpls.usingRCU {
 		fmt.Println("DISASTER! Switched to REF without being in RCU mode!!")
 	}
@@ -119,13 +118,13 @@ func switchToREFWalk(cpls *NewPathLookupState, dentry *Dentry, seq uint32) { //u
 
 		if dentry.d_seq.read_seqretry(seq) {
 			//delete dentry
-			dentry.dcache_parent.dput(dentry)
+			//dentry.dcache_parent.dput(dentry)
 			return -ERROR_LINUX_ECHILD
 		}
 	}
 
 	if !legitimize_path(cpls, dentry, seq) {
-		dentry.dcache_parent.dput(dentry)
+		//dentry.dcache_parent.dput(dentry)
 		return -ERROR_LINUX_ECHILD
 	}
 
@@ -143,7 +142,7 @@ func legitimize_path(cpls *NewPathLookupState, dentry *Dentry, seq uint32) bool 
 
 func (s *ThePathParser) handle_dots(cpls *NewPathLookupState, t LastElementType) PotentialError {
 
-	if(t == LAST_DOUBLEDOT) {
+	if t == LAST_DOUBLEDOT {
 		if cpls.root == cpls.currentDentry {
 			return ERROR_ILLEGAL
 		}
@@ -155,4 +154,3 @@ func (s *ThePathParser) handle_dots(cpls *NewPathLookupState, t LastElementType)
 		return SUCCESS
 	}
 }
-

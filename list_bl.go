@@ -1,20 +1,17 @@
 package dcache2
 
-import (
-)
-
-type hlist_bl_head struct {
-	first *hlist_bl_node
-	lock SpinLock
+type lockingList_head struct {
+	first *lockingList_node
+	lock  SpinLock
 }
 
-type hlist_bl_node struct {
-	next *hlist_bl_node
-	pprev **hlist_bl_node
-	data interface{}
+type lockingList_node struct {
+	next  *lockingList_node
+	pprev **lockingList_node
+	data  interface{}
 }
 
-func __hlist_bl_del(b *hlist_bl_node) {
+func __lockingList_del(b *lockingList_node) {
 	prev := b.pprev
 	next := b.next
 
@@ -22,7 +19,7 @@ func __hlist_bl_del(b *hlist_bl_node) {
 
 }
 
-func (h *hlist_bl_head) hlist_bl_add_head(n *hlist_bl_node) { //HEAD -> OLD => HEAD -> NEW -> OLD
+func (h *lockingList_head) lockingList_add_head(n *lockingList_node) { //HEAD -> OLD => HEAD -> NEW -> OLD
 	first := h.first
 
 	n.next = first
@@ -33,31 +30,31 @@ func (h *hlist_bl_head) hlist_bl_add_head(n *hlist_bl_node) { //HEAD -> OLD => H
 	h.first = n
 }
 
-func (b *hlist_bl_node) init_hlist_bl_node() {
-	b = new(hlist_bl_node)
+func (b *lockingList_node) init_lockingList_node() {
+	b = new(lockingList_node)
 }
 
-func (h *hlist_bl_head) init_hlist_bl_head() {
-	h = new(hlist_bl_head)
+func (h *lockingList_head) init_lockingList_head() {
+	h = new(lockingList_head)
 }
 
-func (h *hlist_bl_node) hlist_bl_unhashed() bool { //is this node contained within a list?
-	return h.pprev==nil
+func (h *lockingList_node) lockingList_unhashed() bool { //is this node contained within a list?
+	return h.pprev == nil
 }
 
-func (h *hlist_bl_head) hlist_bl_lock() {
+func (h *lockingList_head) lockingList_lock() {
 	h.lock.Lock()
 }
 
-func (h *hlist_bl_head) hlist_bl_unlock() {
+func (h *lockingList_head) lockingList_unlock() {
 	h.lock.Unlock()
 }
 
-func (h *hlist_bl_head) hlist_bl_is_locked() bool {
+func (h *lockingList_head) lockingList_is_locked() bool {
 	return h.lock.IsLocked()
 }
 
-func BL_BUG (test bool) {
+func BL_BUG(test bool) {
 	if test {
 		panic("Bug in list_bl.go")
 	}

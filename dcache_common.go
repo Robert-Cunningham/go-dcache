@@ -1,11 +1,10 @@
 package dcache2
 
 import (
-	"fmt"
-	"unsafe"
+	"strconv"
 )
 
-const dhash_entries = 1000 //linux compilation option
+const dhash_entries = 1000    //linux compilation option
 const L1_CACHE_BYTES = 131072 //128k on FX-8350
 const IN_LOOKUP_SHIFT = 10
 const DNAME_INLINE_LEN = 50 //don't make the name any longer than this.
@@ -19,25 +18,19 @@ type dcache interface {
 	d_lookup(parent *Dentry, name string) *Dentry
 	d_add(dentry *Dentry, inode *Inode)
 	d_is_negative(*Dentry) bool
-	getSuperBlock() (*super_block)
+	getSuperBlock() *SuperBlock
 	d_delete(*Dentry)
-	d_alloc(parent *Dentry, name string) (*Dentry)
+	NewDentry(parent *Dentry, name string) *Dentry
 }
 
 func getDentryStringUID(dentry *Dentry) string {
-	return getStringAddressOfDentry(dentry)
+	//return getStringAddressOfDentry(dentry)
+	return strconv.Itoa(dentry.d_uuid)
 }
 
 func getDentryIntUID(dentry *Dentry) uint64 {
-	return getAddressOfDentry(dentry)
-}
-
-func getStringAddressOfDentry(dentry *Dentry) string{
-	return fmt.Sprintf("%v", getAddressOfDentry(dentry))
-}
-
-func getAddressOfDentry(dentry *Dentry) uint64 {
-	return *(*uint64)(unsafe.Pointer(dentry))
+	//return getAddressOfDentry(dentry)
+	return uint64(dentry.d_uuid)
 }
 
 func getHashOfDentry(dentry *Dentry) uint32 {
@@ -57,22 +50,22 @@ type dentryTranformation func(*Dentry)
 
 func applyToDentryTreeHelper(transformation dentryTranformation, parent *Dentry, depth int) {
 	var currentNode *list_node = &parent.d_subdirs
-	var currentChild *Dentry;
+	var currentChild *Dentry
 
 	for {
-		if(currentNode.next == nil) {
+		if currentNode.next == nil {
 			return
-		} else if(currentNode.data == nil) {
+		} else if currentNode.data == nil {
 			goto next
 		} else {
 			currentChild = currentNode.data.(*Dentry)
 		}
 
-		applyToDentryTreeHelper(transformation, currentChild, depth + 1)
+		applyToDentryTreeHelper(transformation, currentChild, depth+1)
 
 		transformation(currentChild)
 
-		next:
+	next:
 		currentNode = currentNode.next
 		//currentChild = currentNode.data.(*Dentry)
 	}
@@ -84,14 +77,13 @@ func applyToDentryTree(transformation dentryTranformation, dentry *Dentry) {
 	transformation(dentry) //allow destructive tranformations
 }
 
-
 func (d *Dentry) setAsDirectory() {
 	d.d_type = DENTRY_DIRECTORY_TYPE
 	//d.d_inode.i_mode = INODE_DIRECTORY_TYPE
 }
 
-func (d *Dentry) getInodeData() (*interface{}, PotentialError){
-	if(d.d_inode != nil && !d.d_inode.isDeleted) {
+func (d *Dentry) getInodeData() (*interface{}, PotentialError) {
+	if d.d_inode != nil && !d.d_inode.isDeleted {
 		return &d.d_inode.data, SUCCESS
 	} else {
 		return nil, ERROR_FAILED_TO_FIND
@@ -100,5 +92,6 @@ func (d *Dentry) getInodeData() (*interface{}, PotentialError){
 }
 
 const (
-	DCACHE_RCUACCESS               = 0x00000080 /* Entry has ever been RCU-visible */
+	DCACHE_RCUACCESS  = 0x00000080 /* Entry has ever been RCU-visible */
+	DCACHE_PAR_LOOKUP = 0x00000800
 )
