@@ -7,6 +7,7 @@ import (
 
 func TestSimplifyPath(t *testing.T) {
 	assertSimplifiesTo(t, Path{"c/d/e"}, Path{"/a/b"}, Path{"/a/b/c/d/e"})
+	assertSimplifiesTo(t, Path{"c/d/e/"}, Path{"/a/b/"}, Path{"/a/b/c/d/e"})
 	assertSimplifiesTo(t, Path{"c/d/./e"}, Path{"/a/b"}, Path{"/a/b/c/d/e"})
 	assertSimplifiesTo(t, Path{"c/d/../e"}, Path{"/a/b"}, Path{"/a/b/c/e"})
 	assertSimplifiesTo(t, Path{"c/d/../././e"}, Path{"/a/b"}, Path{"/a/b/c/e"})
