@@ -27,5 +27,12 @@ func mustWaitOn(later, earlier Command) bool {
 			}
 		}
 	}
+	for _, targ := range earlier.getTraversals() {
+		for _, trav := range later.getTargets() {
+			if trav == targ {
+				return true
+			}
+		}
+	}
 	return false
 }
